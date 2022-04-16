@@ -155,7 +155,10 @@ const CreateWorkout = ({ navigation }) => {
 
   const renderItem = (data) => {
     return (
-      <TouchableHighlight underlayColor={COLORS.darkButtonHighlight}>
+      <TouchableHighlight
+        style={styles.rowFront}
+        underlayColor={COLORS.darkButtonHighlight}
+      >
         <View
           style={{
             flexDirection: "row",
