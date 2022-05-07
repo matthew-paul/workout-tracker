@@ -1,8 +1,8 @@
 import { Text, View, Vibration } from "react-native";
 import React, { Component } from "react";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
-import { COLORS } from "../styles/colors";
-import { CONSTANTS } from "../styles/constants";
+import { COLORS } from "../../styles/colors";
+import { CONSTANTS } from "../../styles/constants";
 import PropTypes from "prop-types";
 
 export class Checkbox extends Component {

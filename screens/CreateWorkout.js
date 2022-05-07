@@ -1,33 +1,23 @@
-import { Text, View, TextInput, Keyboard, Image } from "react-native";
-import React, { useReducer } from "react";
-import { COLORS } from "../styles/colors";
-import Title from "../components/Title";
 import {
+  Text,
+  View,
+  TextInput,
+  Keyboard,
+  Image,
   TouchableWithoutFeedback,
   TouchableOpacity,
   TouchableHighlight,
 } from "react-native";
-import { Overlay, Button, CheckBox } from "@rneui/themed";
+import React, { useEffect, useState } from "react";
+import { COLORS } from "../styles/colors";
+import Title from "../components/Title";
+import { Button } from "@rneui/themed";
 import { SwipeListView } from "react-native-swipe-list-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import AddExerciseOverlay from "../components/create_workout/AddExerciseOverlay";
 
-const initialState = {
-  workoutNameText: "",
-  saveWorkoutButtonEnabled: false,
-  overlayVisible: false,
-  exerciseNameText: "",
-  repsText: "",
-  isTimer: false,
-  saveExerciseButtonEnabled: false,
-  exercises: [],
-};
-
-const validateExercise = (name, reps) => {
-  return name.length != 0 && reps.length != 0 && parseInt(reps) > 0;
-};
-
-const validateWorkout = (name, exercises) => {
-  return name.length != 0 && exercises.length != 0;
+const validateWorkout = (name, exercisesLength) => {
+  return name.length != 0 && exercisesLength != 0;
 };
 
 const getWorkouts = async () => {
@@ -48,109 +38,44 @@ const storeWorkouts = async (workouts) => {
 };
 
 const CreateWorkout = ({ navigation }) => {
-  const reducer = (state, action) => {
-    switch (action.type) {
-      case "updateExerciseName":
-        return {
-          ...state,
-          exerciseNameText: action.value,
-          saveExerciseButtonEnabled: validateExercise(
-            action.value,
-            state.repsText
-          ),
-        };
-      case "updateRepsText":
-        return {
-          ...state,
-          repsText: action.value,
-          saveExerciseButtonEnabled: validateExercise(
-            state.exerciseNameText,
-            action.value
-          ),
-        };
-      case "updateWorkoutName":
-        return {
-          ...state,
-          workoutNameText: action.value,
-          saveWorkoutButtonEnabled: validateWorkout(
-            action.value,
-            state.exercises
-          ),
-        };
-      case "addExercise":
-        if (validateExercise(state.exerciseNameText, state.repsText))
-          return {
-            ...state,
-            exerciseNameText: "",
-            repsText: "",
-            isTimer: false,
-            saveExerciseButtonEnabled: validateExercise(
-              state.exerciseNameText,
-              state.repsText
-            ),
-            saveWorkoutButtonEnabled: validateWorkout(state.workoutNameText, [
-              ...state.exercises,
-              {},
-            ]),
-            overlayVisible: !state.overlayVisible,
-            exercises: [
-              ...state.exercises,
-              {
-                key: state.exercises.length,
-                exerciseName: state.exerciseNameText,
-                reps: state.repsText,
-                isTimer: state.isTimer,
-              },
-            ],
-          };
-      case "addWorkout":
-        if (validateWorkout(state.workoutNameText, state.exercises))
-          getWorkouts()
-            .then((workouts) => {
-              addWorkout(workouts, state.workoutNameText, state.exercises).then(
-                () => navigation.goBack()
-              );
-            })
-            .catch();
-        return state;
-      case "toggleOverlay":
-        return {
-          ...state,
-          exerciseNameText: "",
-          repsText: "",
-          isTimer: false,
-          saveExerciseButtonEnabled: validateExercise(
-            state.exerciseNameText,
-            state.repsText
-          ),
-          saveWorkoutButtonEnabled: validateWorkout(
-            state.workoutNameText,
-            state.exercises
-          ),
-          overlayVisible: !state.overlayVisible,
-        };
-      case "toggleTimer":
-        return { ...state, isTimer: !state.isTimer };
-      case "deleteRow":
-        let newData = [...state.exercises];
-        newData.splice(action.prevIndex, 1);
-        return { ...state, exercises: newData };
-    }
+  const [workoutName, setWorkoutName] = useState("");
+  const [saveButtonEnabled, setSaveButtonEnabled] = useState(false);
+  const [exercises, setExercises] = useState([]);
+  const [overlayVisible, setOverlayVisible] = useState(false);
+
+  // validate workout on change
+  useEffect(() => {
+    setSaveButtonEnabled(validateWorkout(workoutName, exercises.length));
+  }, [workoutName, exercises]);
+
+  const addExercise = (name, reps, isTimer) => {
+    setExercises([
+      ...exercises,
+      {
+        key: exercises.length,
+        exerciseName: name,
+        reps: reps,
+        isTimer: isTimer,
+      },
+    ]);
   };
 
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  const addWorkout = async (workouts, name, exercises) => {
-    let workoutObject = { name: name, exercises: exercises };
-    let newWorkouts;
-    if (workouts != null) newWorkouts = [...workouts, workoutObject];
-    else newWorkouts = [workoutObject];
-    await storeWorkouts(newWorkouts);
+  const addWorkout = async (name, exercises) => {
+    getWorkouts()
+      .then((workouts) => {
+        let workoutObject = { name: name, exercises: exercises };
+        let newWorkouts =
+          workouts != null ? [...workouts, workoutObject] : [workoutObject];
+        storeWorkouts(newWorkouts).then(() => navigation.goBack());
+      })
+      .catch();
   };
 
-  const deleteRow = (rowMap, rowKey) => {
-    const prevIndex = state.exercises.findIndex((item) => item.key === rowKey);
-    dispatch({ type: "deleteRow", prevIndex: prevIndex });
+  const deleteRow = (_, rowKey) => {
+    const prevIndex = exercises.findIndex((item) => item.key === rowKey);
+    let newExercises = [...exercises];
+    newExercises.splice(prevIndex, 1);
+    setExercises(newExercises);
   };
 
   const renderItem = (data) => {
@@ -215,19 +140,15 @@ const CreateWorkout = ({ navigation }) => {
           <TextInput
             style={styles.textInput}
             placeholder="Workout name"
-            value={state.workoutNameText}
-            onChangeText={(value) => {
-              dispatch({ type: "updateWorkoutName", value: value });
-            }}
+            value={workoutName}
+            onChangeText={(value) => setWorkoutName(value)}
             placeholderTextColor={COLORS.placeholderText}
             maxLength={35}
           />
-          {state.workoutNameText.length > 0 ? (
+          {workoutName.length > 0 ? (
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => {
-                dispatch({ type: "updateWorkoutName", value: "" });
-              }}
+              onPress={() => setWorkoutName("")}
             >
               <Image
                 style={styles.cancelButtonImage}
@@ -238,80 +159,19 @@ const CreateWorkout = ({ navigation }) => {
             <></>
           )}
         </View>
-
         <View style={styles.headerView}>
           <Text style={styles.headerText}>Exercises</Text>
         </View>
-
-        <Overlay
-          isVisible={state.overlayVisible}
-          onBackdropPress={() => {
-            dispatch({ type: "toggleOverlay" });
-          }}
-          overlayStyle={{ margin: 0, padding: 0, borderRadius: 20 }}
-        >
-          <TouchableWithoutFeedback
-            onPress={Keyboard.dismiss}
-            accessible={false}
-          >
-            <View style={styles.overlay}>
-              <View style={[styles.excerciseName, { marginTop: 15 }]}>
-                <TextInput
-                  style={styles.excerciseNameText}
-                  placeholder="Excercise name"
-                  value={state.exerciseNameText}
-                  onChangeText={(value) =>
-                    dispatch({ type: "updateExerciseName", value: value })
-                  }
-                  placeholderTextColor={COLORS.placeholderText}
-                  maxLength={30}
-                />
-              </View>
-              <View style={styles.excerciseName}>
-                <TextInput
-                  style={styles.excerciseNameText}
-                  placeholder="Reps or Seconds"
-                  keyboardType="number-pad"
-                  value={state.repsText}
-                  onChangeText={(value) => {
-                    dispatch({ type: "updateRepsText", value: value });
-                  }}
-                  placeholderTextColor={COLORS.placeholderText}
-                  maxLength={35}
-                />
-              </View>
-              <CheckBox
-                center
-                title="Timer"
-                containerStyle={styles.checkboxContainer}
-                textStyle={styles.checkboxTextStyle}
-                checked={state.isTimer}
-                onPress={() => {
-                  dispatch({ type: "toggleTimer" });
-                }}
-                uncheckedColor="black"
-                checkedColor="black"
-              />
-              <Button
-                title="Add"
-                activeOpacity={0.5}
-                disabled={!state.saveExerciseButtonEnabled}
-                titleStyle={styles.buttonText}
-                containerStyle={styles.saveButtonContainer}
-                buttonStyle={styles.saveButton}
-                onPress={() => {
-                  dispatch({ type: "addExercise" });
-                }}
-              />
-            </View>
-          </TouchableWithoutFeedback>
-        </Overlay>
-
-        {state.exercises.length > 0 ? (
+        <AddExerciseOverlay
+          addExercise={addExercise}
+          overlayVisible={overlayVisible}
+          setOverlayVisible={setOverlayVisible}
+        />
+        {exercises.length > 0 ? (
           <View style={styles.swipeListView}>
             <SwipeListView
               disableRightSwipe
-              data={state.exercises}
+              data={exercises}
               renderItem={renderItem}
               renderHiddenItem={renderHiddenItem}
               rightOpenValue={-75}
@@ -324,27 +184,23 @@ const CreateWorkout = ({ navigation }) => {
         ) : (
           <></>
         )}
-
         <Button
           title="Add new exercise"
           titleStyle={styles.buttonText}
           containerStyle={styles.buttonContainer}
           buttonStyle={{ backgroundColor: COLORS.button }}
-          onPress={() => {
-            dispatch({ type: "toggleOverlay" });
-          }}
+          onPress={() => setOverlayVisible(true)}
           activeOpacity={0.8}
         />
-
         <Button
           title="Save"
           activeOpacity={0.8}
-          disabled={!state.saveWorkoutButtonEnabled}
+          disabled={!saveButtonEnabled}
           titleStyle={styles.buttonText}
           containerStyle={styles.saveButtonContainer}
           buttonStyle={styles.saveButton}
           onPress={() => {
-            dispatch({ type: "addWorkout" });
+            addWorkout(workoutName, exercises);
           }}
         />
       </View>
@@ -368,6 +224,12 @@ const styles = {
     borderBottomWidth: 1,
     marginBottom: 30,
   },
+  listItemSwipeable: {},
+  listItemContent: {
+    height: 50,
+    backgroundColor: COLORS.darkButton,
+  },
+
   swipeListView: {
     maxHeight: 530,
     marginBottom: 10,
@@ -409,35 +271,6 @@ const styles = {
     backgroundColor: "red",
     right: 0,
   },
-  exerciseItemContainer: {
-    paddingLeft: 10,
-    justifyContent: "center",
-    backgroundColor: COLORS.button,
-    height: 50,
-  },
-  excerciseName: {
-    height: 40,
-    borderColor: "#000",
-    borderBottomWidth: 1,
-    marginBottom: 25,
-  },
-  excerciseNameText: {
-    flex: 1,
-    fontSize: 20,
-    textAlign: "center",
-    color: COLORS.secondaryText,
-  },
-  checkboxContainer: {
-    backgroundColor: COLORS.secondaryBackground,
-    alignSelf: "center",
-    marginTop: 0,
-    marginBottom: 15,
-  },
-  checkboxTextStyle: {
-    fontSize: 20,
-    fontFamily: "Arial",
-    fontWeight: "normal",
-  },
   textInput: {
     flex: 1,
     fontSize: 20,
@@ -468,6 +301,7 @@ const styles = {
   buttonContainer: {
     width: "100%",
     alignSelf: "center",
+    marginTop: 18,
   },
   buttonText: {
     fontSize: 20,
@@ -479,13 +313,6 @@ const styles = {
   },
   saveButton: {
     backgroundColor: COLORS.saveButton,
-  },
-  overlay: {
-    height: 300,
-    width: 300,
-    borderRadius: 15,
-    backgroundColor: COLORS.secondaryBackground,
-    padding: 10,
   },
 };
 

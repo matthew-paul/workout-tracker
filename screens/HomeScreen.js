@@ -1,9 +1,10 @@
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet, FlatList } from "react-native";
 import React, { Component } from "react";
 import { COLORS } from "../styles/colors";
 import Title from "../components/Title";
 import { TouchableOpacity } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { RectButton } from "react-native-gesture-handler";
 
 async function clearWorkouts() {
   try {
@@ -13,7 +14,7 @@ async function clearWorkouts() {
   }
 }
 
-export class HomeScreen extends Component {
+export default class HomeScreen extends Component {
   render() {
     return (
       <View style={styles.view}>
@@ -68,6 +69,42 @@ const styles = {
     fontFamily: "Arial",
     color: COLORS.buttonText,
   },
+  rectButton: {
+    flex: 1,
+    height: 80,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    justifyContent: "space-between",
+    flexDirection: "column",
+    backgroundColor: "white",
+  },
+  separator: {
+    backgroundColor: "rgb(200, 199, 204)",
+    height: StyleSheet.hairlineWidth,
+  },
+  fromText: {
+    fontWeight: "bold",
+    backgroundColor: "transparent",
+  },
+  messageText: {
+    color: "#999",
+    backgroundColor: "transparent",
+  },
+  dateText: {
+    backgroundColor: "transparent",
+    position: "absolute",
+    right: 20,
+    top: 10,
+    color: "#999",
+    fontWeight: "bold",
+  },
 };
 
-export default HomeScreen;
+const DATA = [
+  {
+    from: "D'Artagnan",
+    when: "3:11 PM",
+    message:
+      "Unus pro omnibus, omnes pro uno. Nunc scelerisque, massa non lacinia porta, quam odio dapibus enim, nec tincidunt dolor leo non neque",
+  },
+];

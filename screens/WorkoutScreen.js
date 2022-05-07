@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 import React, { Component } from "react";
 import { COLORS } from "../styles/colors";
-import Checkbox from "../components/Checkbox";
+import Checkbox from "../components/view_workout/Checkbox";
 import Title from "../components/Title";
 import PropTypes from "prop-types";
 
